@@ -1,0 +1,143 @@
+name: "🚀 Build EzBill APK - by Abhishek Kumar"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  APP_NAME: "EzBill"
+  PACKAGE_NAME: "com.ezbill.invoicegen"
+  DEVELOPER: "Abhishek Kumar"
+
+jobs:
+  build-android:
+    name: "📱 Build Android APK"
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        
+      - name: "📅 Set Build Date"
+        run: echo "BUILD_DATE=$(date +'%Y-%m-%d_%H-%M')" >> $GITHUB_ENV
+        
+      - name: "☕ Setup Java JDK 17"
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+          
+      - name: "🟢 Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: "📦 Install Dependencies"
+        run: |
+          npm ci
+          npm install -g @capacitor/cli
+          
+      - name: "⚙️ Setup Capacitor Android"
+        run: |
+          npx cap add android
+          npx cap sync android
+          
+      - name: "🔧 Make Gradlew Executable"
+        run: chmod +x android/gradlew
+        
+      - name: "🔨 Build Debug APK"
+        working-directory: android
+        run: |
+          ./gradlew clean
+          ./gradlew assembleDebug
+          
+      - name: "🔨 Build Release APK"
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: android
+        run: ./gradlew assembleRelease
+        
+      - name: "🏷️ Rename APK Files"
+        run: |
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            mv android/app/build/outputs/apk/debug/app-debug.apk "EzBill-v1.0-debug-${{ env.BUILD_DATE }}.apk"
+          fi
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            mv android/app/build/outputs/apk/release/app-release.apk "EzBill-v1.0-release-${{ env.BUILD_DATE }}.apk"
+          fi
+          
+      - name: "📤 Upload Debug APK"
+        uses: actions/upload-artifact@v4
+        with:
+          name: "EzBill-Debug-APK-${{ env.BUILD_DATE }}"
+          path: "EzBill-v1.0-debug-${{ env.BUILD_DATE }}.apk"
+          retention-days: 30
+          
+      - name: "📤 Upload Release APK"
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: "EzBill-Release-APK-${{ env.BUILD_DATE }}"
+          path: "EzBill-v1.0-release-${{ env.BUILD_DATE }}.apk"
+          retention-days: 90
+          
+      - name: "🎉 Create GitHub Release"
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "EzBill ${{ github.ref_name }} - by Abhishek Kumar"
+          body: |
+            # 🎉 EzBill ${{ github.ref_name }} Released!
+            
+            **Developer:** Abhishek Kumar
+            **Build Date:** ${{ env.BUILD_DATE }}
+            **Package:** ${{ env.PACKAGE_NAME }}
+            
+            ## 📱 What's New in EzBill:
+            - ✅ Professional Invoice Generator
+            - ✅ Offline-First Functionality  
+            - ✅ GST Calculations & UPI QR Codes
+            - ✅ Business Analytics Dashboard
+            - ✅ Modern UI with Dark/Light Theme
+            - ✅ Works on Android 7.0+
+            
+            ## 📲 Installation:
+            1. Download APK file below
+            2. Enable "Unknown Sources" in Android Settings
+            3. Install APK and enjoy EzBill!
+            
+            ## 🔧 Technical Details:
+            - **App Size:** ~12-15 MB
+            - **Android Version:** 7.0+ (API 24+)
+            - **Architecture:** Universal (ARM, x86)
+            - **Permissions:** Storage (for PDF export)
+            
+            ---
+            **Made with ❤️ by Abhishek Kumar**
+          files: |
+            EzBill-v1.0-release-${{ env.BUILD_DATE }}.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: "✅ Build Completed Successfully"
+        run: |
+          echo "🎉 EzBill APK Build Completed!"
+          echo "📱 App Name: ${{ env.APP_NAME }}"
+          echo "👨‍💻 Developer: ${{ env.DEVELOPER }}"
+          echo "📅 Build Date: ${{ env.BUILD_DATE }}"
+          echo ""
+          echo "📥 Download Links:"
+          echo "- Debug APK: Available in GitHub Actions Artifacts"
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "- Release APK: Available in GitHub Releases"
+          fi

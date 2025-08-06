@@ -1,0 +1,14 @@
+{
+  "appId": "com.ezbill.invoicegen",
+  "appName": "EzBill",
+  "webDir": "src",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#1b4bc4",
+      "showSpinner": true,
+      "spinnerColor": "#ffffff"
+    }
+  }
+}

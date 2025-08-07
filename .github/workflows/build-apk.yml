@@ -7,9 +7,9 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
-  push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'  # Tags ko branches ke andar hi add kar do
+
 
 env:
   APP_NAME: "EzBill"
